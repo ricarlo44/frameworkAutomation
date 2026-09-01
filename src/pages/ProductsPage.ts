@@ -19,6 +19,13 @@ export class ProductsPage {
 
   async waitUntilLoaded(): Promise<void> {
     await this.page.waitForURL('**/products');
+    // waitForURL only confirms the route changed, not that React has
+    // finished painting the product cards -- productCount()/addAllProducts()
+    // read the DOM with .count(), which does not auto-wait like .click() or
+    // expect() do, so a caller reading them right after this method returns
+    // could otherwise catch a 0-product frame under load (this was observed
+    // as a real, if rare, flake in tests/web/cart-add-all.spec.ts).
+    await this.inventoryContainer.waitFor({ state: 'visible' });
   }
 
   async productCount(): Promise<number> {

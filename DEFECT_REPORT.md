@@ -43,12 +43,38 @@ Run it directly with:
 npx playwright test --project=mobile tests/mobile/responsive-layout.spec.ts
 ```
 
-**Likely technical cause:** the product grid is very likely a CSS grid
-with a fixed `minmax()` column width (a common pattern for a 2-column
-product layout) that does not have a narrow-viewport breakpoint collapsing
-it to a single column. A design-token/CSS-level fix (a media query
-switching `grid-template-columns` to one column below ~400px) is the
-expected fix, not a JavaScript change.
+**Confirmed technical cause:** `[data-test="inventory-container"]` is a CSS
+grid with **fixed-pixel columns and no narrow-viewport breakpoint** --
+`grid-template-columns: 280px 280px` plus `padding: 32px` (32px each
+side), computed directly from the live page. Two 280px columns + a 16px
+gap + 64px of padding need 640px of width minimum, on a 360px-wide phone.
+There is no media query anywhere collapsing this to one column.
+
+**Suggested fix (verified, not deployed):**
+
+```css
+@media (max-width: 620px) {
+  [data-test="inventory-container"] {
+    grid-template-columns: 1fr;
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}
+```
+
+This is not a guess -- `tests/mobile/responsive-layout.spec.ts`'s second
+test (`"the proposed CSS fix resolves the overflow"`) injects exactly this
+patch client-side with Playwright's `addStyleTag()` on the live page and
+re-measures the same `scrollWidth`/`clientWidth` check: **468px → 360px,
+overflow eliminated**, with every product card's text and button fully
+visible (see the "after" screenshot below). This does not modify
+`teststore.blassacademy.com` itself -- there is no access to that site's
+source or hosting -- it only proves what the real fix should look like and
+that it works, for whoever owns that stylesheet to apply.
+
+| Before | After (proposed fix injected) |
+| --- | --- |
+| ![Overflowing grid](./docs/evidence/mobile-product-grid-overflow.png) | ![Fixed grid, single column, no clipped text](./docs/evidence/mobile-product-grid-fixed.png) |
 
 **Note on language consistency (not filed as its own defect, observed
 during the same testing pass):** two strings render in English on an

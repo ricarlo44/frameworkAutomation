@@ -22,9 +22,10 @@ test.describe('mobile: login', () => {
 
   test('the hamburger menu opens on mobile, and Logout returns to the login screen', async ({ page }) => {
     const login = new LoginPage(page);
+    const products = new ProductsPage(page);
     await login.goto();
     await login.login(config.users.standard, config.password);
-    await page.waitForURL('**/products');
+    await products.waitUntilLoaded();
 
     await page.getByTestId('react-burger-menu-btn').tap();
     await expect(page.getByRole('link', { name: 'All Items' })).toBeVisible();

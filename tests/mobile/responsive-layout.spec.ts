@@ -33,4 +33,40 @@ test.describe('mobile: responsive layout', () => {
       overflow.clientWidth,
     );
   });
+
+  test('the proposed CSS fix resolves the overflow (verification, not a live-site fix)', async ({ page }) => {
+    // This does NOT change teststore.blassacademy.com -- there is no access
+    // to that site's source or hosting, so nothing here is deployed. What
+    // this proves is narrower and still useful: the exact patch suggested
+    // in DEFECT_REPORT.md actually fixes the measured problem, by injecting
+    // it client-side with addStyleTag() and re-measuring the same
+    // scrollWidth/clientWidth check the test above uses. If a maintainer
+    // applies this patch to the real stylesheet, this is the outcome to
+    // expect.
+    const login = new LoginPage(page);
+    const products = new ProductsPage(page);
+
+    await login.goto();
+    await login.login(config.users.standard, config.password);
+    await products.waitUntilLoaded();
+
+    await page.addStyleTag({
+      content: `
+        @media (max-width: 620px) {
+          [data-test="inventory-container"] {
+            grid-template-columns: 1fr !important;
+            padding-left: 16px !important;
+            padding-right: 16px !important;
+          }
+        }
+      `,
+    });
+
+    const overflow = await page.evaluate(() => ({
+      scrollWidth: document.documentElement.scrollWidth,
+      clientWidth: document.documentElement.clientWidth,
+    }));
+
+    expect(overflow.scrollWidth).toBeLessThanOrEqual(overflow.clientWidth);
+  });
 });

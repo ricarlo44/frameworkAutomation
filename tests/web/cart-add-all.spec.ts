@@ -16,11 +16,11 @@ test.use({ video: 'on' });
 
 test('adding every product in the catalog is reflected accurately in the badge and every button', async ({ page }) => {
   const login = new LoginPage(page);
+  const products = new ProductsPage(page);
   await login.goto();
   await login.login(config.users.standard, config.password);
-  await page.waitForURL('**/products');
+  await products.waitUntilLoaded();
 
-  const products = new ProductsPage(page);
   const total = await products.productCount();
   expect(total).toBeGreaterThan(0);
 
