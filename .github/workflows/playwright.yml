@@ -1,0 +1,112 @@
+# GitHub only looks inside .github/workflows/ for pipeline files, and only
+# reads .yml or .yaml (YAML is a plain-text config format -- nothing to do
+# with the ".in" from reqres.in, that was just the practice API's domain
+# name). Any file placed here becomes a pipeline automatically the moment
+# it's pushed; there is no separate place to "turn it on".
+name: Playwright Tests
+
+# When this pipeline runs:
+#  - push to main: every commit that lands on main gets tested.
+#  - pull_request targeting main: every PR gets tested before it's mergeable.
+#  - workflow_dispatch: adds a manual "Run workflow" button on the Actions
+#    tab on GitHub, so it can be triggered on demand without a new commit
+#    (useful right after setting this up, to confirm it works).
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test:
+    # Shows up in the Actions tab as "web tests", "api tests", "mobile
+    # tests" -- ${{ matrix.project }} is filled in from the matrix below.
+    name: ${{ matrix.project }} tests
+    # GitHub's own Linux runner. Free for public repos, and Playwright's
+    # Chromium build runs natively on it -- no reason to pay for a heavier
+    # runner for a browser-only suite like this one.
+    runs-on: ubuntu-latest
+
+    strategy:
+      # Without this, one matrix leg failing cancels the other two
+      # in-flight legs. The mobile "responsive-layout" test is *expected*
+      # to fail (it's the documented defect from DEFECT_REPORT.md) -- that
+      # must not stop the web and api legs from finishing and reporting
+      # their own real results.
+      fail-fast: false
+      matrix:
+        # Runs the three Playwright projects from playwright.config.ts as
+        # three separate, parallel jobs instead of one long sequential
+        # `npm test`. Parallel: total wall-clock time is close to the
+        # slowest single project, not the sum of all three. Separate: each
+        # project's pass/fail status and logs are its own line in the
+        # GitHub UI, so a mobile failure doesn't bury the api/web results
+        # underneath it.
+        project: [web, api, mobile]
+
+    steps:
+      # Every job starts on a brand-new, empty virtual machine -- this step
+      # is what actually puts the repository's code onto it.
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Installs Node.js on the runner. Pinned to 24 to match the version
+      # this project was built and verified against locally (v24.18.0) --
+      # avoids "works on my machine, fails in CI" from a Node version drift.
+      # cache: 'npm' caches node_modules between runs (keyed on
+      # package-lock.json) so `npm ci` below doesn't re-download every
+      # dependency from the registry on every single run.
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      # `npm ci` (not `npm install`): installs exactly what package-lock.json
+      # says, and fails instead of silently updating it if it's out of sync.
+      # That's what makes CI installs reproducible.
+      - name: Install dependencies
+        run: npm ci
+
+      # Downloads the actual Chromium browser binary Playwright drives.
+      # --with-deps also installs the Linux system libraries Chromium needs
+      # to run headless on a bare runner (fonts, codecs, etc.) -- without
+      # it, Chromium installs but fails to launch on a fresh Ubuntu image.
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      # The actual test run for this matrix leg. --project=web (or
+      # api / mobile) runs only that one project from playwright.config.ts,
+      # matching exactly the local `npm run test:web` / `test:api` /
+      # `test:mobile` commands. No environment variables need to be set
+      # here: src/config/env.ts already falls back to the real public
+      # store/API URLs when no .env file is present, which is always the
+      # case in CI (.env is gitignored).
+      - name: Run ${{ matrix.project }} tests
+        run: npx playwright test --project=${{ matrix.project }}
+
+      # `if: always()` is the important part -- without it, this step (and
+      # the one below) would be skipped whenever a test fails, which is
+      # exactly the moment the report is most needed. Uploads become
+      # downloadable .zip files at the bottom of the workflow run page.
+      - name: Upload HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ matrix.project }}
+          path: playwright-report/
+          retention-days: 14
+
+      # Separate from the HTML report: this is the raw evidence per test
+      # (screenshots on failure, the forced videos from the "add all
+      # products" and mobile "full purchase" flows, and traces -- an
+      # interactive step-by-step recording openable with
+      # `npx playwright show-trace`).
+      - name: Upload videos, screenshots, and traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.project }}
+          path: test-results/
+          retention-days: 14

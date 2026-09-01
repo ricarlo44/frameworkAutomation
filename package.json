@@ -1,0 +1,19 @@
+{
+  "name": "frameworkautomation",
+  "version": "1.0.0",
+  "description": "End-to-end, API, and mobile-emulation test automation for teststore.blassacademy.com",
+  "private": true,
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "playwright test",
+    "test:web": "playwright test --project=web",
+    "test:mobile": "playwright test --project=mobile",
+    "test:api": "playwright test --project=api",
+    "report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.1",
+    "@types/node": "^26.4.0",
+    "typescript": "^7.0.2"
+  }
+}
