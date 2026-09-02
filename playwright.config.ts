@@ -9,12 +9,13 @@ import { galaxyS25 } from './src/config/devices';
  *  - "mobile" the same store, emulated on a Galaxy S25 viewport/UA -- the
  *             store is a responsive website, not a native app, so device
  *             emulation is the right layer (see README "Mobile strategy").
- *  - "api"    no browser, HTTP-only, against reqres.in (the store itself
- *             ships no backend API -- see README "Why reqres.in").
+ *  - "api"    no browser, HTTP-only, against dummyjson.com (the store itself
+ *             ships no backend API -- see README "Why dummyjson.com").
  * Video is only kept for failed tests project-wide; the cart's "all
- * products" flow additionally forces video on regardless of outcome
- * (see tests/web/cart.spec.ts) because that flow is long enough that a
- * single screenshot on failure would not be enough to diagnose it.
+ * products" flow and the mobile "full purchase" flow additionally force
+ * video on regardless of outcome (see tests/web/cart-add-all.spec.ts and
+ * tests/mobile/shopping-flow.spec.ts) because those flows are long enough
+ * that a single screenshot on failure would not be enough to diagnose them.
  */
 export default defineConfig({
   testDir: './tests',

@@ -185,3 +185,18 @@ Nothing here is hardcoded to one person's machine or one fixed target:
   (`workflow_dispatch`), or `gh workflow run playwright.yml` from the
   GitHub CLI, run the pipeline without needing a new commit -- useful for
   re-confirming a fix, or for a QA lead re-running the suite on demand.
+
+### Known limitations of the pipeline itself
+
+- **The `pull_request` trigger has never actually fired.** Every commit so
+  far has gone straight to `main` via direct pushes, so `push` is the only
+  trigger this pipeline has real run history for. The trigger is correctly
+  configured, but "runs on every PR too" is unverified until this repo has
+  an actual PR to test it against.
+- **dummyjson.com is a third-party dependency with no formal SLA**, the
+  same category of risk that made reqres.in unworkable (see "Why
+  dummyjson.com" above). It was verified to tolerate a 20-request burst
+  with no rate-limiting before adopting it, but nothing prevents it from
+  changing its own limits or availability in the future -- there is no
+  retry/backoff wrapper around the API calls beyond Playwright's own
+  project-level `retries: 1` in CI.

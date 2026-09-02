@@ -25,13 +25,15 @@ test('a full purchase, start to finish, works end to end on a Galaxy S25 viewpor
   await products.goToCart();
   await page.waitForURL('**/your-data');
 
-  const fields = page.locator('input');
-  await fields.nth(0).tap();
-  await fields.nth(0).fill('Ricardo');
-  await fields.nth(1).tap();
-  await fields.nth(1).fill('Lopez');
-  await fields.nth(2).tap();
-  await fields.nth(2).fill('qa.mobile@example.com');
+  // By name attribute, not position -- the "your-data" form exposes real
+  // name attributes (nombre/apellido/email), so there is no reason to
+  // depend on field order the way a plain input.nth(N) chain would.
+  await page.locator('input[name="nombre"]').tap();
+  await page.locator('input[name="nombre"]').fill('Ricardo');
+  await page.locator('input[name="apellido"]').tap();
+  await page.locator('input[name="apellido"]').fill('Lopez');
+  await page.locator('input[name="email"]').tap();
+  await page.locator('input[name="email"]').fill('qa.mobile@example.com');
 
   await page.getByRole('button', { name: /continuar/i }).tap();
 

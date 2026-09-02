@@ -63,14 +63,23 @@ There is no media query anywhere collapsing this to one column.
 ```
 
 This is not a guess -- `tests/mobile/responsive-layout.spec.ts`'s second
-test (`"the proposed CSS fix resolves the overflow"`) injects exactly this
-patch client-side with Playwright's `addStyleTag()` on the live page and
+test (`"the proposed CSS fix resolves the overflow"`) injects this same
+rule client-side with Playwright's `addStyleTag()` on the live page and
 re-measures the same `scrollWidth`/`clientWidth` check: **468px → 360px,
 overflow eliminated**, with every product card's text and button fully
 visible (see the "after" screenshot below). This does not modify
 `teststore.blassacademy.com` itself -- there is no access to that site's
 source or hosting -- it only proves what the real fix should look like and
 that it works, for whoever owns that stylesheet to apply.
+
+(The test adds `!important` to each declaration, defensively, since
+`addStyleTag()` injects after the page's own stylesheet has already
+loaded and there was no reason to rely on DOM-order cascade behavior
+holding for the purpose of this proof. Applying the patch as shown above,
+without `!important`, inside the site's own stylesheet was independently
+re-verified to resolve the overflow the same way -- `!important` is not a
+requirement of the fix itself, only an artifact of proving it via
+after-the-fact injection.)
 
 | Before | After (proposed fix injected) |
 | --- | --- |

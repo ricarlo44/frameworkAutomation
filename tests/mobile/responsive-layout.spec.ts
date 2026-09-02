@@ -11,6 +11,13 @@ import { ProductsPage } from '../../src/pages/ProductsPage';
 // automated failing test" is meant to be visible just by running the
 // suite, not opted into with test.fail().
 test.describe('mobile: responsive layout', () => {
+  // CI's project-level retries: 1 (playwright.config.ts) exists to absorb
+  // transient network flakiness -- it does nothing useful for a permanently
+  // failing, deterministic assertion like the one below, and just burns an
+  // extra ~45s and another full video/trace on every single push. Retries
+  // are turned off for this file specifically, not the whole mobile project.
+  test.describe.configure({ retries: 0 });
+
   test('the product catalog does not overflow horizontally on a Galaxy S25 viewport', async ({ page }) => {
     const login = new LoginPage(page);
     const products = new ProductsPage(page);
